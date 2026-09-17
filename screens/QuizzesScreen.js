@@ -2,6 +2,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useUser } from '../contexts/UserContext';
 import { supabase } from '../lib/supabase';
 import { colors, radius, shadow, spacing, typography } from '../theme/theme';
@@ -16,21 +17,21 @@ function getQuizState(quiz) {
 }
 
 function EmptyState({ isTeacher }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyTitle}>No quizzes yet</Text>
+      <Text style={styles.emptyTitle}>{t('noQuizzesYet')}</Text>
       <Text style={styles.emptySubtitle}>
-        {isTeacher
-          ? 'Create this week\u2019s quiz to get started.'
-          : 'Check back when your teacher posts this week\u2019s quiz.'}
+        {isTeacher ? t('noQuizzesTeacherSub') : t('noQuizzesStudentSub')}
       </Text>
     </View>
   );
 }
 
 function QuizCard({ item, isTeacher, onDelete, navigation }) {
+  const { t } = useLanguage();
   const state = getQuizState(item);
-  const label = state === 'live' ? 'Live now' : state === 'upcoming' ? 'Upcoming' : 'Closed';
+  const label = state === 'live' ? t('liveNow') : state === 'upcoming' ? t('upcoming') : t('closed');
   const badgeStyle = state === 'live' ? styles.badgeOpen : styles.badgeClosed;
   const textStyle = state === 'live' ? styles.badgeTextOpen : styles.badgeTextClosed;
 
@@ -48,16 +49,17 @@ function QuizCard({ item, isTeacher, onDelete, navigation }) {
       </View>
       <Text style={styles.cardSubtitle}>
         {state === 'upcoming'
-          ? `Opens ${new Date(item.opens_at).toLocaleString()}`
+          ? `${t('opens')} ${new Date(item.opens_at).toLocaleString()}`
           : state === 'live'
-            ? `Closes ${new Date(item.closes_at).toLocaleTimeString()}`
-            : `Closed ${new Date(item.closes_at).toLocaleDateString()}`}
+            ? `${t('closes')} ${new Date(item.closes_at).toLocaleTimeString()}`
+            : `${t('closed')} ${new Date(item.closes_at).toLocaleDateString()}`}
       </Text>
     </Pressable>
   );
 }
 
 export default function QuizzesScreen({ navigation }) {
+  const { t } = useLanguage();
   const { profile } = useUser();
   const isTeacher = profile?.role === 'teacher';
   const [quizzes, setQuizzes] = useState([]);
@@ -74,17 +76,17 @@ export default function QuizzesScreen({ navigation }) {
 
   const handleLongPress = (quiz) => {
     Alert.alert(quiz.title, undefined, [
-      { text: 'Edit', onPress: () => navigation.navigate('CreateQuiz', { quiz }) },
+      { text: t('edit'), onPress: () => navigation.navigate('CreateQuiz', { quiz }) },
       {
-        text: 'Delete',
+        text: t('delete'),
         style: 'destructive',
         onPress: async () => {
           const { error } = await supabase.from('quizzes').delete().eq('id', quiz.id);
-          if (error) Alert.alert('Could not delete', error.message);
+          if (error) Alert.alert(t('couldNotDelete'), error.message);
           else loadQuizzes();
         },
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('cancel'), style: 'cancel' },
     ]);
   };
 
@@ -97,13 +99,13 @@ export default function QuizzesScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.largeTitle}>Quizzes</Text>
+        <Text style={styles.largeTitle}>{t('quizzes')}</Text>
         {isTeacher && (
           <Pressable
             style={({ pressed }) => [styles.newButton, pressed && { backgroundColor: colors.accentPressed }]}
             onPress={() => navigation.navigate('CreateQuiz')}
           >
-            <Text style={styles.newButtonText}>New</Text>
+            <Text style={styles.newButtonText}>{t('new')}</Text>
           </Pressable>
         )}
       </View>

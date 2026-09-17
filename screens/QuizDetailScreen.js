@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useUser } from '../contexts/UserContext';
 import { supabase } from '../lib/supabase';
 import { colors, radius, shadow, spacing, typography } from '../theme/theme';
@@ -15,10 +16,11 @@ function getQuizState(quiz) {
 }
 
 function Header({ title, onBack }) {
+    const { t } = useLanguage();
     return (
         <View style={styles.header}>
             <Pressable onPress={onBack}>
-                <Text style={styles.backText}>Back</Text>
+                <Text style={styles.backText}>{t('back')}</Text>
             </Pressable>
             <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
             <View style={{ width: 40 }} />
@@ -28,6 +30,7 @@ function Header({ title, onBack }) {
 
 // ---------- Teacher view: questions + per-student results ----------
 function TeacherView({ quiz }) {
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [questions, setQuestions] = useState([]);
     const [submissions, setSubmissions] = useState([]);
@@ -58,7 +61,7 @@ function TeacherView({ quiz }) {
 
     return (
         <ScrollView contentContainerStyle={styles.scroll}>
-            <Text style={styles.sectionTitle}>Questions</Text>
+            <Text style={styles.sectionTitle}>{t('questions')}</Text>
             {questions.map((q, qi) => (
                 <View key={q.id} style={styles.questionCard}>
                     <Text style={styles.questionText}>{qi + 1}. {q.question_text}</Text>
@@ -73,13 +76,13 @@ function TeacherView({ quiz }) {
                 </View>
             ))}
 
-            <Text style={styles.sectionTitle}>Results ({submissions.length})</Text>
+            <Text style={styles.sectionTitle}>{t('results')} ({submissions.length})</Text>
             {submissions.length === 0 ? (
-                <Text style={styles.emptyText}>No students have submitted yet.</Text>
+                <Text style={styles.emptyText}>{t('noSubmissionsYet')}</Text>
             ) : (
                 submissions.map((s, i) => (
                     <View key={i} style={styles.resultRow}>
-                        <Text style={styles.resultName}>{s.profiles?.name || 'Unknown'}</Text>
+                        <Text style={styles.resultName}>{s.profiles?.name || t('unknown')}</Text>
                         <Text style={styles.resultScore}>{s.score} / {s.total_questions}</Text>
                     </View>
                 ))
@@ -90,6 +93,7 @@ function TeacherView({ quiz }) {
 
 // ---------- Student view: take quiz, wait, or review ----------
 function StudentView({ quiz, profile, navigation }) {
+    const { t } = useLanguage();
     const state = getQuizState(quiz);
     const [loading, setLoading] = useState(true);
     const [questions, setQuestions] = useState([]);
@@ -124,7 +128,7 @@ function StudentView({ quiz, profile, navigation }) {
 
         if (state === 'live') {
             const { data, error } = await supabase.rpc('get_quiz_questions', { p_quiz_id: quiz.id });
-            if (error) Alert.alert('Could not load quiz', error.message);
+            if (error) Alert.alert(t('couldNotLoadQuiz'), error.message);
             else setQuestions(data);
         }
         setLoading(false);
@@ -136,7 +140,7 @@ function StudentView({ quiz, profile, navigation }) {
 
     const handleSubmit = async () => {
         if (Object.keys(answers).length < questions.length) {
-            Alert.alert('Answer everything', 'Please answer every question before submitting.');
+            Alert.alert(t('answerEverything'), t('pleaseAnswerEveryQuestion'));
             return;
         }
         setSubmitting(true);
@@ -144,12 +148,12 @@ function StudentView({ quiz, profile, navigation }) {
         const { data, error } = await supabase.rpc('submit_quiz', { p_quiz_id: quiz.id, p_answers: payload });
         setSubmitting(false);
         if (error) {
-            Alert.alert('Could not submit', error.message);
+            Alert.alert(t('couldNotSubmit'), error.message);
             return;
         }
         const result = data[0];
-        Alert.alert('Quiz submitted', `You scored ${result.score} / ${result.total_questions}`, [
-            { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert(t('quizSubmitted'), `${t('youScored')} ${result.score} / ${result.total_questions}`, [
+            { text: t('ok'), onPress: () => navigation.goBack() },
         ]);
     };
 
@@ -167,7 +171,7 @@ function StudentView({ quiz, profile, navigation }) {
             <ScrollView contentContainerStyle={styles.scroll}>
                 <View style={styles.scoreBanner}>
                     <Text style={styles.scoreText}>{pastSubmission.score} / {pastSubmission.total_questions}</Text>
-                    <Text style={styles.scoreSubtext}>Final score</Text>
+                    <Text style={styles.scoreSubtext}>{t('finalScore')}</Text>
                 </View>
                 {review.map((q, qi) => (
                     <View key={qi} style={styles.questionCard}>
@@ -185,8 +189,8 @@ function StudentView({ quiz, profile, navigation }) {
                                     ]}
                                 >
                                     <Text style={styles.optionText}>{opt}</Text>
-                                    {isCorrect && <Text style={styles.reviewTag}>Correct</Text>}
-                                    {isSelected && !isCorrect && <Text style={styles.reviewTagWrong}>Your answer</Text>}
+                                    {isCorrect && <Text style={styles.reviewTag}>{t('correct')}</Text>}
+                                    {isSelected && !isCorrect && <Text style={styles.reviewTagWrong}>{t('yourAnswer')}</Text>}
                                 </View>
                             );
                         })}
@@ -202,7 +206,7 @@ function StudentView({ quiz, profile, navigation }) {
             <View style={styles.centered}>
                 <Text style={styles.scoreText}>{pastSubmission.score} / {pastSubmission.total_questions}</Text>
                 <Text style={styles.scoreSubtext}>
-                    {state === 'live' ? 'You already submitted. Answers reveal once the quiz closes.' : 'Final score'}
+                    {state === 'live' ? t('alreadySubmittedPending') : t('finalScore')}
                 </Text>
             </View>
         );
@@ -213,7 +217,7 @@ function StudentView({ quiz, profile, navigation }) {
         return (
             <View style={styles.centered}>
                 <Text style={styles.scoreSubtext}>
-                    {state === 'upcoming' ? 'This quiz hasn\u2019t opened yet.' : 'This quiz is closed. You didn\u2019t submit an attempt.'}
+                    {state === 'upcoming' ? t('quizNotOpenedYet') : t('quizClosedMissed')}
                 </Text>
             </View>
         );
@@ -238,7 +242,7 @@ function StudentView({ quiz, profile, navigation }) {
                 onPress={handleSubmit}
                 disabled={submitting}
             >
-                <Text style={styles.submitText}>{submitting ? 'Submitting…' : 'Submit Quiz'}</Text>
+                <Text style={styles.submitText}>{submitting ? t('submitting') : t('submitQuiz')}</Text>
             </Pressable>
         </ScrollView>
     );

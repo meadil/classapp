@@ -1,62 +1,79 @@
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useUser } from '../contexts/UserContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { colors, radius, spacing, typography } from '../theme/theme';
 
-export default function CreateVideoScreen({ navigation, route }) {
+export default function CreateCqVideoScreen({ navigation, route }) {
+    const { t } = useLanguage();
     const editingVideo = route.params?.video || null;
     const isEditing = !!editingVideo;
+    const chapterId = route.params.chapterId;
 
-    const { profile } = useUser();
     const [title, setTitle] = useState(editingVideo?.title || '');
-    const [description, setDescription] = useState(editingVideo?.description || '');
     const [youtubeUrl, setYoutubeUrl] = useState(editingVideo?.youtube_url || '');
+    const [description, setDescription] = useState(editingVideo?.description || '');
+    const [pdfUrl, setPdfUrl] = useState(editingVideo?.pdf_url || '');
     const [saving, setSaving] = useState(false);
 
     const validate = () => {
-        if (!title.trim()) return 'Give the video a title.';
-        if (!youtubeUrl.trim()) return 'Paste a YouTube link.';
-        if (!/youtu\.?be/.test(youtubeUrl)) return 'That doesn\u2019t look like a YouTube link.';
+        if (!title.trim()) return t('giveVideoTitle');
+        if (!youtubeUrl.trim()) return t('pasteYoutubeLink');
+        if (!/youtu\.?be/.test(youtubeUrl)) return t('invalidYoutubeLink');
         return null;
     };
 
     const handleSave = async () => {
         const error = validate();
         if (error) {
-            Alert.alert('Missing info', error);
+            Alert.alert(t('missingInfo'), error);
             return;
         }
 
         setSaving(true);
 
+        const pdfValue = pdfUrl.trim() || null;
+        const descriptionValue = description.trim() || null;
+
         if (isEditing) {
             const { error: updateError } = await supabase
-                .from('videos')
+                .from('cq_videos')
                 .update({
                     title: title.trim(),
-                    description: description.trim(),
                     youtube_url: youtubeUrl.trim(),
+                    pdf_url: pdfValue,
+                    description: descriptionValue,
                 })
                 .eq('id', editingVideo.id);
 
             setSaving(false);
             if (updateError) {
-                Alert.alert('Could not save changes', updateError.message);
+                Alert.alert(t('couldNotSave'), updateError.message);
                 return;
             }
         } else {
-            const { error: insertError } = await supabase.from('videos').insert({
+            const { data: existing } = await supabase
+                .from('cq_videos')
+                .select('order_index')
+                .eq('chapter_id', chapterId)
+                .order('order_index', { ascending: false })
+                .limit(1);
+
+            const nextOrderIndex = existing?.length ? existing[0].order_index + 1 : 0;
+
+            const { error: insertError } = await supabase.from('cq_videos').insert({
+                chapter_id: chapterId,
                 title: title.trim(),
-                description: description.trim(),
                 youtube_url: youtubeUrl.trim(),
-                uploaded_by: profile.id,
+                pdf_url: pdfValue,
+                description: descriptionValue,
+                order_index: nextOrderIndex,
             });
 
             setSaving(false);
             if (insertError) {
-                Alert.alert('Could not post video', insertError.message);
+                Alert.alert(t('couldNotCreateVideo'), insertError.message);
                 return;
             }
         }
@@ -68,12 +85,12 @@ export default function CreateVideoScreen({ navigation, route }) {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <Pressable onPress={() => navigation.goBack()}>
-                    <Text style={styles.cancelText}>Cancel</Text>
+                    <Text style={styles.cancelText}>{t('cancel')}</Text>
                 </Pressable>
-                <Text style={styles.headerTitle}>{isEditing ? 'Edit Video' : 'New Video'}</Text>
+                <Text style={styles.headerTitle}>{isEditing ? t('editVideo') : t('newVideo')}</Text>
                 <Pressable onPress={handleSave} disabled={saving}>
                     <Text style={[styles.saveText, saving && { opacity: 0.4 }]}>
-                        {saving ? 'Saving…' : isEditing ? 'Save' : 'Post'}
+                        {saving ? t('saving') : t('save')}
                     </Text>
                 </Pressable>
             </View>
@@ -84,19 +101,19 @@ export default function CreateVideoScreen({ navigation, route }) {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
                 <ScrollView contentContainerStyle={styles.scroll}>
-                    <Text style={styles.sectionLabel}>Title</Text>
+                    <Text style={styles.sectionLabel}>{t('title')}</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="e.g. Photosynthesis — Part 1"
+                        placeholder={t('cqVideoTitlePlaceholder')}
                         placeholderTextColor={colors.textTertiary}
                         value={title}
                         onChangeText={setTitle}
                     />
 
-                    <Text style={styles.sectionLabel}>YouTube Link</Text>
+                    <Text style={styles.sectionLabel}>{t('youtubeLink')}</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="https://youtu.be/…"
+                        placeholder={t('youtubeLinkPlaceholder')}
                         placeholderTextColor={colors.textTertiary}
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -104,16 +121,28 @@ export default function CreateVideoScreen({ navigation, route }) {
                         onChangeText={setYoutubeUrl}
                     />
 
-                    <Text style={styles.sectionLabel}>Description</Text>
+                    <Text style={styles.sectionLabel}>{t('descriptionOptional')}</Text>
                     <TextInput
                         style={[styles.input, styles.textArea]}
-                        placeholder="What's this video about?"
+                        placeholder={t('descriptionPlaceholder')}
                         placeholderTextColor={colors.textTertiary}
+                        multiline
+                        numberOfLines={4}
                         value={description}
                         onChangeText={setDescription}
-                        multiline
-                        numberOfLines={5}
                     />
+
+                    <Text style={styles.sectionLabel}>{t('attachedPdfLinkOptional')}</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder={t('attachedPdfPlaceholder')}
+                        placeholderTextColor={colors.textTertiary}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        value={pdfUrl}
+                        onChangeText={setPdfUrl}
+                    />
+                    <Text style={styles.helperText}>{t('attachedPdfHelper')}</Text>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -146,5 +175,6 @@ const styles = StyleSheet.create({
         fontSize: 17,
         color: colors.textPrimary,
     },
-    textArea: { minHeight: 100, textAlignVertical: 'top' },
+    helperText: { ...typography.caption, color: colors.textTertiary, marginTop: spacing.xs },
+    textArea: { minHeight: 90, textAlignVertical: 'top', paddingTop: spacing.sm },
 });

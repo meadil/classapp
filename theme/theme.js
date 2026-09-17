@@ -12,8 +12,10 @@ export const colors = {
   textSecondary: '#6E6E73',
   textTertiary: '#AEAEB2',
 
-  accent: '#0071E3', // Apple blue — the one accent color in the app
-  accentPressed: '#0059B3',
+  accent: '#166534', // Sohoj Pathshala forest green — the main brand color
+  accentPressed: '#14532D', // darker green for pressed/active states
+
+  highlight: '#EAB308', // gold — the warm accent, use sparingly (streaks, scores, CTAs that need to pop)
 
   success: '#34C759',
   danger: '#FF3B30',
@@ -36,16 +38,21 @@ export const radius = {
   pill: 999,
 };
 
+// Hind Siliguri everywhere — renders both Bangla and Latin text well, so
+// it's used regardless of the active language. Loaded via useFonts() in
+// App.js. Only Regular and SemiBold are bundled; "bold" tokens map to
+// SemiBold since custom font files don't respond to a fontWeight override
+// the way system fonts do.
+const FONT_REGULAR = 'HindSiliguri-Regular';
+const FONT_SEMIBOLD = 'HindSiliguri-SemiBold';
+
 export const typography = {
-  // No custom font files — the system font (SF Pro on iOS, Roboto on
-  // Android) already gives each platform its native feel, which fits
-  // the "clean, native" brief better than importing a web font.
-  largeTitle: { fontSize: 34, fontWeight: '700', letterSpacing: 0.2 },
-  title: { fontSize: 22, fontWeight: '600' },
-  headline: { fontSize: 17, fontWeight: '600' },
-  body: { fontSize: 17, fontWeight: '400' },
-  subhead: { fontSize: 15, fontWeight: '400' },
-  caption: { fontSize: 13, fontWeight: '400' },
+  largeTitle: { fontSize: 34, fontFamily: FONT_SEMIBOLD, letterSpacing: 0.2 },
+  title: { fontSize: 22, fontFamily: FONT_SEMIBOLD },
+  headline: { fontSize: 17, fontFamily: FONT_SEMIBOLD },
+  body: { fontSize: 17, fontFamily: FONT_REGULAR },
+  subhead: { fontSize: 15, fontFamily: FONT_REGULAR },
+  caption: { fontSize: 13, fontFamily: FONT_REGULAR },
 };
 
 export const shadow = {

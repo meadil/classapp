@@ -1,22 +1,26 @@
 {
   "expo": {
-    "name": "classapp",
+    "name": "Sohoj Pathshala",
     "slug": "classapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "classapp",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ec190ebe-c94b-4def-976f-59226b12b660"
+    },
     "ios": {
       "icon": "./assets/expo.icon"
     },
     "android": {
       "package": "com.adil.classapp",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#166534",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -24,7 +28,16 @@
       "reactCompiler": true
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "backgroundColor": "#FFFFFF",
+          "imageWidth": 200
+        }
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
